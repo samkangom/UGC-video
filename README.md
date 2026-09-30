@@ -32,3 +32,26 @@ python3 scripts/make_music.py 39 assets/music.wav
 python3 scripts/render.py --preview   # still frames in output/
 python3 scripts/render.py             # full video
 ```
+
+---
+
+# TikTok cut: an AI creator trying out the book
+
+**Final video:** `output/funding_your_american_dream_tiktok.mp4` (30.4s, 1080×1920, 30 fps)
+
+A realistic AI-generated creator reacts to the book, reads it, takes notes and recommends it.
+All text stays inside TikTok's safe zone, clear of the app's top bar, right-hand buttons and bottom caption area.
+
+| Time | Shot | Voiceover / on-screen text |
+|------|------|----------------------------|
+| 0–5.6s | **Hook.** Selfie shot that whips from her face to the book, then punches back in on her face | "Wait… this book actually shows you how to study in the U.S. fully funded?!" / **WAIT… A FULLY FUNDED U.S. DEGREE?!** |
+| 5.6–10.4s | Reading on her bed, then a close-up for "same." | "If you're an international student and U.S. tuition scares you… same." |
+| 10.4–13.7s | Top-down shot of her hands holding the book, with sticky tabs | "So I picked up Funding Your American Dream by Finn Carter." |
+| 13.7–19.8s | Reading, with a checklist popping in | Scholarships ✓ Assistantships ✓ Real funding options ✓ |
+| 19.8–22s | Sticky tabs and highlighter | "I'm literally taking notes right now." |
+| 22–30.4s | Call to action: book, then back to her face | Kindle Unlimited $0 / Paperback $15.99 / "Search on Amazon: Funding Your American Dream" |
+
+- **Creator images** (`assets/v2/girl_*.png`, `book_pov.png`): ElevenLabs gpt-image-2 and Nano Banana Pro, with the real cover as a reference image.
+- **Voice** (`assets/v2/voiceover.mp3`): ElevenLabs v3, voice "Lara".
+- **Captions:** word timings come from faster-whisper and are saved in `assets/v2/words.json`.
+- **Rebuild:** `python3 scripts/render_tiktok.py` (add `--preview` for still frames only).
