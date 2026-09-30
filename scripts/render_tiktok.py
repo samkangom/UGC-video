@@ -208,31 +208,47 @@ def cta(d, t):
 # ---------------------------------------------------------------- timeline
 # (start, end, image key, crop start (cx, cy, h), crop end, overlay fn)
 SHOTS = [
-    # hook: face, then whip to the book on "this book", punch in on "fully funded"
-    (0.00, 1.00, "hook", (0.47, 0.50, 1.00), (0.46, 0.46, 0.92)),
+    # hook: she's talking to camera, whips to the book on "this book",
+    # then back to her face for "fully funded?!"
+    (0.00, 1.00, "hook", (0.47, 0.50, 1.00), (0.47, 0.47, 0.90)),
     (1.00, 3.90, "hook", (0.72, 0.52, 1.00), (0.72, 0.50, 0.86)),
-    (3.90, 5.60, "hook", (0.55, 0.46, 0.90), (0.50, 0.44, 0.80)),
-    # relatable problem
-    (5.60, 9.30, "reading", (0.50, 0.50, 1.00), (0.46, 0.40, 0.80)),
-    (9.30, 10.45, "reading", (0.53, 0.34, 0.52), (0.53, 0.33, 0.46)),
+    (3.90, 10.45, "hook", (0.50, 0.46, 1.00), (0.49, 0.45, 0.86)),
     # the book
     (10.45, 13.65, "pov", (0.50, 0.46, 1.00), (0.48, 0.40, 0.72)),
     # what's inside
     (13.65, 19.80, "reading", (0.40, 0.48, 0.70), (0.34, 0.50, 0.60)),
     # taking notes: tabs + highlighter
     (19.80, 21.95, "pov", (0.80, 0.52, 0.55), (0.72, 0.44, 0.62)),
-    # CTA: book, then back to her face
-    (21.95, 24.40, "hook", (0.72, 0.52, 0.95), (0.72, 0.50, 0.85)),
+    # CTA: talking to camera, prices over the book, then back to her face
+    (21.95, 24.40, "hook", (0.49, 0.47, 1.00), (0.49, 0.46, 0.90)),
     (24.40, 27.95, "pov", (0.50, 0.50, 0.95), (0.50, 0.46, 0.85)),
-    (27.95, DURATION, "hook", (0.50, 0.50, 1.00), (0.48, 0.46, 0.88)),
+    (27.95, DURATION, "hook", (0.50, 0.50, 1.00), (0.48, 0.46, 0.86)),
 ]
 
 
 def load():
     def rgb(p):
         return Image.open(V2(p)).convert("RGB")
-    hook = rgb("girl_hook.png").filter(ImageFilter.UnsharpMask(2, 60, 2))
-    return {"hook": hook, "reading": rgb("girl_reading.png"), "pov": rgb("book_pov.png")}
+    return {"hook": rgb("girl_hook.png"), "talk": load_talk(),
+            "reading": rgb("girl_reading.png"), "pov": rgb("book_pov.png")}
+
+
+def load_talk():
+    """Lip-synced frames of the hook photo (see scripts/lipsync_composite.py)."""
+    w, h = 1280, 720
+    raw = subprocess.run([FFMPEG, "-loglevel", "error", "-i", V2("hook_talk.mp4"),
+                          "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                         capture_output=True, check=True).stdout
+    n = len(raw) // (w * h * 3)
+    return [raw[i * w * h * 3:(i + 1) * w * h * 3] for i in range(n)]
+
+
+def hook_frame(S, t):
+    talk = S["talk"]
+    i = int(t * FPS)
+    if i >= len(talk):
+        return S["hook"]
+    return Image.frombuffer("RGB", (1280, 720), talk[i])
 
 
 GRAIN = [Image.fromarray(np.clip(128 + np.random.default_rng(i).normal(0, 9, (H // 2, W // 2)),
@@ -243,7 +259,8 @@ def frame(S, t):
     for t0, t1, key, c0, c1 in SHOTS:
         if t0 <= t < t1:
             break
-    img = shot(S[key], t, c0, c1, (t - t0) / (t1 - t0))
+    src = hook_frame(S, t) if key == "hook" else S[key]
+    img = shot(src, t, c0, c1, (t - t0) / (t1 - t0))
     img = punch(img, t, t0)
     # subtle film grain so upscaled stills read like phone footage
     g = GRAIN[int(t * FPS) % len(GRAIN)]
@@ -251,12 +268,13 @@ def frame(S, t):
     img = img.convert("RGBA")
     d = ImageDraw.Draw(img)
     hook_text(d, t)
-    label(d, t, 5.72, 9.3, "INTERNATIONAL STUDENTS", y=260)
+    label(d, t, 5.72, 10.45, "INTERNATIONAL STUDENTS", y=260)
     label(d, t, 10.5, 13.65, "MY NEW FAVORITE BOOK", y=260, fill=YELLOW)
     checklist(d, t)
     label(d, t, 19.85, 21.95, "LITERALLY TAKING NOTES", y=260)
     cta(d, t)
-    draw_captions(img, t)
+    # keep captions off her mouth while she is talking on camera
+    draw_captions(img, t, 1440 if key == "hook" else 1180)
     return img.convert("RGB")
 
 

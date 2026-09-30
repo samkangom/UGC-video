@@ -55,3 +55,17 @@ All text stays inside TikTok's safe zone, clear of the app's top bar, right-hand
 - **Voice** (`assets/v2/voiceover.mp3`): ElevenLabs v3, voice "Lara".
 - **Captions:** word timings come from faster-whisper and are saved in `assets/v2/words.json`.
 - **Rebuild:** `python3 scripts/render_tiktok.py` (add `--preview` for still frames only).
+
+### Lip-sync (talking shots)
+The creator's talking shots are lip-synced to the voiceover with the open-source
+[Wav2Lip](https://github.com/Rudrabha/Wav2Lip) GAN model. It runs on CPU.
+
+```bash
+# in a Wav2Lip checkout, with wav2lip_gan.pth and s3fd.pth weights, torch, librosa and opencv installed
+python3 inference.py --checkpoint_path checkpoints/wav2lip_gan.pth \
+  --face assets/v2/girl_hook.png --audio assets/v2/voiceover.mp3 \
+  --outfile hook_talk_raw.mp4 --static True --fps 30 --pads 0 15 0 0
+# keep the photo sharp and swap in only the mouth region
+python3 scripts/lipsync_composite.py hook_talk_raw.mp4 assets/v2/girl_hook.png assets/v2/hook_talk.mp4
+python3 scripts/render_tiktok.py
+```
